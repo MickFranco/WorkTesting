@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Power BI Carousel</title>
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: black;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+    }
+
+    #carousel {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .slide {
+        display: none;
+        width: 100%;
+        height: 100%;
+    }
+
+    .slide.active {
+        display: block;
+    }
+
+    iframe, video {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: black;
+    }
+
+    #controls {
+        position: absolute;
+        bottom: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 15px;
+        z-index: 1000;
+    }
+
+    #controls button {
+        background: rgba(0,0,0,0.75);
+        color: white;
+        border: 1px solid #888;
+        padding: 8px 14px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 6px;
+    }
+
+    #controls button:hover {
+        background: rgba(255,255,255,0.2);
+    }
+</style>
+</head>
+
+<body>
+
+<div id="carousel">
+
+    <!-- Power BI Report 1 -->
+    <div class="slide"
+         data-type="iframe"
+         data-duration="60000"
+         data-refresh="300000">
+        <iframe src="https://app.powerbi.com/reportEmbed?reportId=f06f1f52-4c82-4290-b825-9d24e576c4fb&autoAuth=true&ctid=75864cfe-f26d-419c-b69d-c638695b5533"></iframe>
+    </div>
+
+    <!-- Power BI Report 2 -->
+    <div class="slide"
+         data-type="iframe"
+         data-duration="60000"
+         data-refresh="300000">
+        <iframe src="https://app.powerbi.com/reportEmbed?reportId=effffd8e-2081-4b31-be18-62c057b3c226&autoAuth=true&ctid=75864cfe-f26d-419c-b69d-c638695b5533"></iframe>
+    </div>
+
+    <!-- SharePoint Video 
+    <div class="slide" data-type="video">
+        <video>
+            <source src="https://YOURTENANT.sharepoint.com/sites/SiteName/Shared%20Documents/video.mp4" type="video/mp4">
+        </video>
+    </div>
+    -->
+
+    <!-- Controls -->
+    <div id="controls">
+        <button onclick="prevSlide()">⏮</button>
+        <button id="pauseBtn" onclick="togglePause()">⏸</button>
+        <button onclick="nextSlide()">⏭</button>
+    </div>
+
+</div>
+
+<script>
+let slides = document.querySelectorAll('.slide');
+let current = 0;
+let timer = null;
+let refreshTimer = null;
+let paused = false;
+
+function clearTimers() {
+    clearTimeout(timer);
+    clearInterval(refreshTimer);
+}
+
+function reloadIframe(slide) {
+    let iframe = slide.querySelector('iframe');
+    if (!iframe) return;
+    iframe.src = iframe.src;
+}
+
+function showSlide(index) {
+    clearTimers();
+
+    slides.forEach((s, i) => {
+        s.classList.toggle('active', i === index);
+        let video = s.querySelector('video');
+        if (video) {
+            video.pause();
+            video.currentTime = 0;
+        }
+    });
+
+    current = index;
+    document.getElementById('pauseBtn').textContent = paused ? '▶' : '⏸';
+
+    let slide = slides[current];
+    let type = slide.dataset.type;
+
+    if (type === 'video') {
+        let video = slide.querySelector('video');
+        if (!paused) video.play();
+        video.onended = () => {
+            if (!paused) nextSlide();
+        };
+    } else {
+        let duration = parseInt(slide.dataset.duration || 60000);
+        let refresh = parseInt(slide.dataset.refresh || 0);
+
+        if (refresh > 0) {
+            refreshTimer = setInterval(() => {
+                if (!paused) reloadIframe(slide);
+            }, refresh);
+        }
+
+        timer = setTimeout(() => {
+            if (!paused) nextSlide();
+        }, duration);
+    }
+}
+
+function nextSlide() {
+    showSlide((current + 1) % slides.length);
+}
+
+function prevSlide() {
+    showSlide((current - 1 + slides.length) % slides.length);
+}
+
+function togglePause() {
+    paused = !paused;
+    let slide = slides[current];
+    let video = slide.querySelector('video');
+    let btn = document.getElementById('pauseBtn');
+
+    if (video) {
+        paused ? video.pause() : video.play();
+    }
+
+    btn.textContent = paused ? '▶' : '⏸';
+}
+
+// Start carousel
+showSlide(0);
+</script>
+
+</body>
+</html>
